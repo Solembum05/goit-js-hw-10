@@ -6,8 +6,8 @@ import { fetchCountries } from './fetchCountries';
 
 const refs = {
   input: document.getElementById('search-box'),
-  countryList: document.querySelector('country-list'),
-  countryInfo: document.querySelector('country-info'),
+  countryList: document.querySelector('.country-list'),
+  countryInfo: document.querySelector('.country-info'),
 };
 
 refs.input.addEventListener('input', debounce(onInputSearch, DEBOUNCE_DELAY));
@@ -15,7 +15,7 @@ refs.input.addEventListener('input', debounce(onInputSearch, DEBOUNCE_DELAY));
 function onInputSearch() {
   const countryName = refs.input.value.trim();
   if (countryName === '') {
-    Notify.failure(`Oops, there is no country with name "${countryName}"`);
+    refs.countryList.innerHTML = '';
     return;
   }
   fetchCountries(countryName)
@@ -24,7 +24,6 @@ function onInputSearch() {
         Notify.info(
           'Too many matches found. Please enter a more specific name.'
         );
-        return;
       } else if (result.length === 1) {
         return result.reduce(
           (markup, el) => markup + makeOneCountryMarkup(el),
@@ -37,24 +36,33 @@ function onInputSearch() {
         );
       }
     })
-    .then(updateCountryList);
+    .then(updateCountryList)
+    .catch(onError);
 }
 
-function makeOneCountryMarkup({ name, capital, population, flags, languages }) {
+function makeOneCountryMarkup(el) {
+  const languages = Object.values(el.languages).join(', ');
   return `
   <div>
   <h2>
-  <span>${flags}</span>${name}
+  <img 
+        src=${el.flags.svg} 
+        alt="${el.flags.alt}"
+        width=50px 
+        height=25px
+        version="1.1"
+        viewBox="0 0 25 25"/>
+        ${el.name.common}
   </h2>
-      <h3>Capital: ${capital}</h3>
-      <h3>Population: ${population}</h3>
+      <h3>Capital: ${el.capital}</h3>
+      <h3>Population: ${el.population}</h3>
       <h3>Languages: ${languages}</h3>
   </div>`;
 }
 
 function makeManyCountryMarkup(el) {
   return `
-    <li data-name="${el.name.common}" class="list">
+    <li name="${el.name.common}" class="list">
         <img 
         src=${el.flags.svg} 
         alt="${el.flags.alt}"
@@ -67,5 +75,10 @@ function makeManyCountryMarkup(el) {
 }
 
 function updateCountryList(markup) {
-  refs.countryList.innerHTML = markup;
+  if (markup) refs.countryList.innerHTML = markup;
+  return;
+}
+
+function onError(err) {
+  Notify.failure(`Oops, there is no country with name`);
 }
